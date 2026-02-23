@@ -8,10 +8,8 @@ namespace QuantityMeasurementApp.Console
     {
         static void Main(string[] args)
         {
-            IMeasurementComparer measurementService = new MeasurementComparerService();
-
-            var menu = new Menu(measurementService);
-
+            ILengthComparer service = new LengthComparerService();
+            var menu = new Menu(service);
             menu.Show();
         }
     }
