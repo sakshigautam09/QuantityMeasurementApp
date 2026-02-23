@@ -76,7 +76,8 @@ namespace QuantityMeasurementApp.Tests
             Assert.Throws<InvalidOperationException>(() =>
             {
                 var q = new Length(1.0, (LengthUnit)(-1));
-                q.ToFeet();
+                var other = new Length(1.0, LengthUnit.Feet);
+                q.Equals(other);   // Force conversion
             });
         }
 
