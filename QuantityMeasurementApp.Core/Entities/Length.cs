@@ -9,7 +9,7 @@ namespace QuantityMeasurementApp.Core.Entities
 
         public Length(double value, LengthUnit unit)
         {
-
+            
             if (value <= 0)
                 throw new ArgumentException("Invalid input: Value must be greater than zero.");
 
@@ -17,7 +17,6 @@ namespace QuantityMeasurementApp.Core.Entities
             Unit = unit;
         }
 
-        // Convert everything to FEET (base unit)
         public double ToFeet()
         {
             switch (Unit)
@@ -28,10 +27,17 @@ namespace QuantityMeasurementApp.Core.Entities
                 case LengthUnit.Inch:
                     return Value / 12.0;
 
+                case LengthUnit.Yard:
+                    return Value * 3.0;
+
+                case LengthUnit.Centimeter:
+                    return (Value * 0.393701) / 12.0;
+
                 default:
                     throw new InvalidOperationException("Unsupported unit.");
             }
         }
+
         public override bool Equals(object? obj)
         {
             if (ReferenceEquals(this, obj))
