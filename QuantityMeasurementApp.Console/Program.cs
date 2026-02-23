@@ -2,14 +2,17 @@
 using QuantityMeasurementApp.Core.Interfaces;
 using QuantityMeasurementApp.Core.Services;
 
-class Program
+namespace QuantityMeasurementApp.Console
 {
-    static void Main()
+    class Program
     {
-        IFeetComparer comparerService = new FeetComparerService();
+        static void Main(string[] args)
+        {
+            IMeasurementComparer measurementService = new MeasurementComparerService();
 
-        var menu = new Menu(comparerService);
+            var menu = new Menu(measurementService);
 
-        menu.Show();
+            menu.Show();
+        }
     }
 }
