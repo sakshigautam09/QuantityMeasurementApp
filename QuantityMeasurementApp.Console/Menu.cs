@@ -19,7 +19,7 @@ namespace QuantityMeasurementApp.Console
 
             while (running)
             {
-                System.Console.WriteLine("\n===== Quantity Measurement App (UC3) =====");
+                System.Console.WriteLine("\n===== Quantity Measurement App (UC4) =====");
                 System.Console.WriteLine("1. Compare Lengths");
                 System.Console.WriteLine("2. Exit");
                 System.Console.Write("Select option: ");
@@ -48,10 +48,9 @@ namespace QuantityMeasurementApp.Console
             try
             {
                 double value1 = ReadNumericInput("first value");
-                LengthUnit unit1 = ReadUnit("first unit (Feet/Inch)");
-
+                LengthUnit unit1 = ReadUnit("first unit (Feet/Inch/Yard/Centimeter)");
                 double value2 = ReadNumericInput("second value");
-                LengthUnit unit2 = ReadUnit("second unit (Feet/Inch)");
+                LengthUnit unit2 = ReadUnit("second unit (Feet/Inch/Yard/Centimeter)");
 
                 var l1 = _service.Create(value1, unit1);
                 var l2 = _service.Create(value2, unit2);
@@ -98,10 +97,10 @@ namespace QuantityMeasurementApp.Console
             System.Console.Write($"Enter {label}: ");
             string? input = System.Console.ReadLine();
 
-            if (Enum.TryParse<LengthUnit>(input, true, out var unit))
+            if (Enum.TryParse(input, true, out LengthUnit unit))
                 return unit;
 
-            throw new ArgumentException("Invalid unit type. Use Feet or Inch.");
+            throw new ArgumentException("Invalid unit type.");
         }
     }
 }
