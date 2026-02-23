@@ -9,33 +9,33 @@ namespace QuantityMeasurementApp.Core.Entities
 
         public Length(double value, LengthUnit unit)
         {
-            
+            if (!double.IsFinite(value))
+                throw new ArgumentException("Value must be a finite number.");
+
             if (value <= 0)
-                throw new ArgumentException("Invalid input: Value must be greater than zero.");
+                throw new ArgumentException("Value must be greater than zero.");
 
             Value = value;
             Unit = unit;
         }
 
-        public double ToFeet()
+        // Instance Conversion
+        public double ConvertTo(LengthUnit targetUnit)
         {
-            switch (Unit)
-            {
-                case LengthUnit.Feet:
-                    return Value;
+            double valueInFeet = Value * Unit.ToFeetFactor();
+            return valueInFeet / targetUnit.ToFeetFactor();
+        }
 
-                case LengthUnit.Inch:
-                    return Value / 12.0;
+        // Static Conversion (UC5 explicit API)
+        public static double Convert(double value,
+                                     LengthUnit sourceUnit,
+                                     LengthUnit targetUnit)
+        {
+            if (!double.IsFinite(value))
+                throw new ArgumentException("Value must be finite.");
 
-                case LengthUnit.Yard:
-                    return Value * 3.0;
-
-                case LengthUnit.Centimeter:
-                    return (Value * 0.393701) / 12.0;
-
-                default:
-                    throw new InvalidOperationException("Unsupported unit.");
-            }
+            double valueInFeet = value * sourceUnit.ToFeetFactor();
+            return valueInFeet / targetUnit.ToFeetFactor();
         }
 
         public override bool Equals(object? obj)
@@ -46,12 +46,15 @@ namespace QuantityMeasurementApp.Core.Entities
             if (obj is not Length other)
                 return false;
 
-            return Math.Abs(ToFeet() - other.ToFeet()) < 0.0001;
+            double thisFeet = Value * Unit.ToFeetFactor();
+            double otherFeet = other.Value * other.Unit.ToFeetFactor();
+
+            return Math.Abs(thisFeet - otherFeet) < 0.0001;
         }
 
         public override int GetHashCode()
         {
-            return ToFeet().GetHashCode();
+            return (Value * Unit.ToFeetFactor()).GetHashCode();
         }
 
         public override string ToString()

@@ -1,3 +1,5 @@
+using System;
+
 namespace QuantityMeasurementApp.Core.Entities
 {
     public enum LengthUnit
@@ -6,5 +8,21 @@ namespace QuantityMeasurementApp.Core.Entities
         Inch,
         Yard,
         Centimeter
+    }
+
+    public static class LengthUnitExtensions
+    {
+        // Conversion factor relative to FEET (base unit)
+        public static double ToFeetFactor(this LengthUnit unit)
+        {
+            return unit switch
+            {
+                LengthUnit.Feet => 1.0,
+                LengthUnit.Inch => 1.0 / 12.0,
+                LengthUnit.Yard => 3.0,
+                LengthUnit.Centimeter => 0.393701 / 12.0,
+                _ => throw new InvalidOperationException("Unsupported unit.")
+            };
+        }
     }
 }
