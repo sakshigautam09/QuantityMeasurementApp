@@ -4,38 +4,53 @@ namespace QuantityMeasurementApp.Core.Entities
 {
     public sealed class Length
     {
+        private const double EPSILON = 1e-6;
+
         public double Value { get; }
         public LengthUnit Unit { get; }
 
         public Length(double value, LengthUnit unit)
         {
             if (!double.IsFinite(value))
-                throw new ArgumentException("Value must be a finite number.");
-
-            if (value <= 0)
-                throw new ArgumentException("Value must be greater than zero.");
+                throw new ArgumentException("Value must be finite.");
 
             Value = value;
             Unit = unit;
         }
 
-        // Instance Conversion
         public double ConvertTo(LengthUnit targetUnit)
         {
             double valueInFeet = Value * Unit.ToFeetFactor();
             return valueInFeet / targetUnit.ToFeetFactor();
         }
 
-        // Static Conversion (UC5 explicit API)
         public static double Convert(double value,
-                                     LengthUnit sourceUnit,
-                                     LengthUnit targetUnit)
+                                     LengthUnit source,
+                                     LengthUnit target)
         {
             if (!double.IsFinite(value))
                 throw new ArgumentException("Value must be finite.");
 
-            double valueInFeet = value * sourceUnit.ToFeetFactor();
-            return valueInFeet / targetUnit.ToFeetFactor();
+            double valueInFeet = value * source.ToFeetFactor();
+            return valueInFeet / target.ToFeetFactor();
+        }
+
+        public Length Add(Length other)
+        {
+            if (other is null)
+                throw new ArgumentNullException(nameof(other));
+
+            if (!double.IsFinite(other.Value))
+                throw new ArgumentException("Invalid value.");
+
+            double thisFeet = Value * Unit.ToFeetFactor();
+            double otherFeet = other.Value * other.Unit.ToFeetFactor();
+
+            double sumFeet = thisFeet + otherFeet;
+
+            double resultValue = sumFeet / Unit.ToFeetFactor();
+
+            return new Length(resultValue, Unit);
         }
 
         public override bool Equals(object? obj)
@@ -49,7 +64,7 @@ namespace QuantityMeasurementApp.Core.Entities
             double thisFeet = Value * Unit.ToFeetFactor();
             double otherFeet = other.Value * other.Unit.ToFeetFactor();
 
-            return Math.Abs(thisFeet - otherFeet) < 0.0001;
+            return Math.Abs(thisFeet - otherFeet) < EPSILON;
         }
 
         public override int GetHashCode()

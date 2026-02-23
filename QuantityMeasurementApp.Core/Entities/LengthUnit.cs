@@ -12,7 +12,6 @@ namespace QuantityMeasurementApp.Core.Entities
 
     public static class LengthUnitExtensions
     {
-        // Conversion factor relative to FEET (base unit)
         public static double ToFeetFactor(this LengthUnit unit)
         {
             return unit switch

@@ -6,20 +6,15 @@ namespace QuantityMeasurementApp.Core.Services
 {
     public class LengthService : ILengthService
     {
-        private const double MAX_ALLOWED = 100000;
-
         public Length Create(double value, LengthUnit unit)
         {
-            if (value > MAX_ALLOWED)
-                throw new OverflowException("Value exceeds allowed maximum.");
-
             return new Length(value, unit);
         }
 
         public bool AreEqual(Length first, Length second)
         {
             if (first is null || second is null)
-                throw new ArgumentNullException("Length cannot be null.");
+                throw new ArgumentNullException();
 
             return first.Equals(second);
         }
@@ -29,6 +24,14 @@ namespace QuantityMeasurementApp.Core.Services
                               LengthUnit target)
         {
             return Length.Convert(value, source, target);
+        }
+
+        public Length Add(Length first, Length second)
+        {
+            if (first is null || second is null)
+                throw new ArgumentNullException();
+
+            return first.Add(second);
         }
     }
 }
