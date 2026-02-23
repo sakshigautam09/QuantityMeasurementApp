@@ -1,14 +1,14 @@
 using System;
-using QuantityMeasurementApp.Core.Interfaces;
 using QuantityMeasurementApp.Core.Entities;
+using QuantityMeasurementApp.Core.Interfaces;
 
 namespace QuantityMeasurementApp.Console
 {
     public class Menu
     {
-        private readonly ILengthComparer _service;
+        private readonly ILengthService _service;
 
-        public Menu(ILengthComparer service)
+        public Menu(ILengthService service)
         {
             _service = service;
         }
@@ -19,9 +19,10 @@ namespace QuantityMeasurementApp.Console
 
             while (running)
             {
-                System.Console.WriteLine("\n===== Quantity Measurement App (UC4) =====");
-                System.Console.WriteLine("1. Compare Lengths");
-                System.Console.WriteLine("2. Exit");
+                System.Console.WriteLine("\n===== Quantity Measurement App =====");
+                System.Console.WriteLine("1. Compare Two Lengths");
+                System.Console.WriteLine("2. Convert Length");
+                System.Console.WriteLine("3. Exit");
                 System.Console.Write("Select option: ");
 
                 string? choice = System.Console.ReadLine();
@@ -33,6 +34,10 @@ namespace QuantityMeasurementApp.Console
                         break;
 
                     case "2":
+                        ConvertLength();
+                        break;
+
+                    case "3":
                         running = false;
                         break;
 
@@ -45,56 +50,45 @@ namespace QuantityMeasurementApp.Console
 
         private void CompareLengths()
         {
-            try
-            {
-                double value1 = ReadNumericInput("first value");
-                LengthUnit unit1 = ReadUnit("first unit (Feet/Inch/Yard/Centimeter)");
-                double value2 = ReadNumericInput("second value");
-                LengthUnit unit2 = ReadUnit("second unit (Feet/Inch/Yard/Centimeter)");
+            double value1 = ReadValue("first value");
+            LengthUnit unit1 = ReadUnit("first unit");
 
-                var l1 = _service.Create(value1, unit1);
-                var l2 = _service.Create(value2, unit2);
+            double value2 = ReadValue("second value");
+            LengthUnit unit2 = ReadUnit("second unit");
 
-                bool result = _service.AreEqual(l1, l2);
+            var l1 = _service.Create(value1, unit1);
+            var l2 = _service.Create(value2, unit2);
 
-                System.Console.WriteLine("\n+--------------------------------------+");
-                System.Console.WriteLine($"| Equality Result : {result,-10}|");
-                System.Console.WriteLine("+--------------------------------------+");
+            bool result = _service.AreEqual(l1, l2);
 
-                System.Console.WriteLine($"Converted Value 1: {l1.ToFeet()} ft");
-                System.Console.WriteLine($"Converted Value 2: {l2.ToFeet()} ft");
-            }
-            catch (ArgumentException ex)
-            {
-                System.Console.WriteLine($"Validation Error: {ex.Message}");
-            }
-            catch (OverflowException ex)
-            {
-                System.Console.WriteLine($"Overflow Error: {ex.Message}");
-            }
-            catch (Exception)
-            {
-                System.Console.WriteLine("Unexpected error occurred.");
-            }
+            System.Console.WriteLine($"\nEquality Result: {result}");
         }
 
-        private double ReadNumericInput(string label)
+        private void ConvertLength()
+        {
+            double value = ReadValue("value");
+            LengthUnit source = ReadUnit("source unit");
+            LengthUnit target = ReadUnit("target unit");
+
+            double result = _service.Convert(value, source, target);
+
+            System.Console.WriteLine($"\nConverted Result: {result} {target}");
+        }
+
+        private double ReadValue(string label)
         {
             System.Console.Write($"Enter {label}: ");
             string? input = System.Console.ReadLine();
 
-            if (string.IsNullOrWhiteSpace(input))
-                throw new ArgumentException($"{label} cannot be empty.");
-
             if (!double.TryParse(input, out double value))
-                throw new ArgumentException($"{label} must be numeric.");
+                throw new ArgumentException("Invalid numeric input.");
 
             return value;
         }
 
         private LengthUnit ReadUnit(string label)
         {
-            System.Console.Write($"Enter {label}: ");
+            System.Console.Write($"Enter {label} (Feet/Inch/Yard/Centimeter): ");
             string? input = System.Console.ReadLine();
 
             if (Enum.TryParse(input, true, out LengthUnit unit))

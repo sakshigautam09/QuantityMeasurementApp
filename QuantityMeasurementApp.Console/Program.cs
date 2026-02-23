@@ -6,9 +6,9 @@ namespace QuantityMeasurementApp.Console
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
-            ILengthComparer service = new LengthComparerService();
+            ILengthService service = new LengthService();
             var menu = new Menu(service);
             menu.Show();
         }
