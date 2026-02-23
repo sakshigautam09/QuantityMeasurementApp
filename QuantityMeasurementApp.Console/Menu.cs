@@ -20,9 +20,10 @@ namespace QuantityMeasurementApp.Console
             while (running)
             {
                 System.Console.WriteLine("\n===== Quantity Measurement App =====");
-                System.Console.WriteLine("1. Compare Two Lengths");
+                System.Console.WriteLine("1. Compare Lengths");
                 System.Console.WriteLine("2. Convert Length");
-                System.Console.WriteLine("3. Exit");
+                System.Console.WriteLine("3. Add Lengths");
+                System.Console.WriteLine("4. Exit");
                 System.Console.Write("Select option: ");
 
                 string? choice = System.Console.ReadLine();
@@ -30,49 +31,54 @@ namespace QuantityMeasurementApp.Console
                 switch (choice)
                 {
                     case "1":
-                        CompareLengths();
+                        Compare();
                         break;
-
                     case "2":
-                        ConvertLength();
+                        Convert();
                         break;
-
                     case "3":
-                        running = false;
+                        Add();
                         break;
-
-                    default:
-                        System.Console.WriteLine("Invalid selection.");
+                    case "4":
+                        running = false;
                         break;
                 }
             }
         }
 
-        private void CompareLengths()
+        private void Compare()
         {
-            double value1 = ReadValue("first value");
-            LengthUnit unit1 = ReadUnit("first unit");
-
-            double value2 = ReadValue("second value");
-            LengthUnit unit2 = ReadUnit("second unit");
-
-            var l1 = _service.Create(value1, unit1);
-            var l2 = _service.Create(value2, unit2);
+            var l1 = ReadLength("first");
+            var l2 = ReadLength("second");
 
             bool result = _service.AreEqual(l1, l2);
-
-            System.Console.WriteLine($"\nEquality Result: {result}");
+            System.Console.WriteLine($"Result: {result}");
         }
 
-        private void ConvertLength()
+        private void Convert()
         {
             double value = ReadValue("value");
             LengthUnit source = ReadUnit("source unit");
             LengthUnit target = ReadUnit("target unit");
 
             double result = _service.Convert(value, source, target);
+            System.Console.WriteLine($"Converted: {result} {target}");
+        }
 
-            System.Console.WriteLine($"\nConverted Result: {result} {target}");
+        private void Add()
+        {
+            var l1 = ReadLength("first");
+            var l2 = ReadLength("second");
+
+            Length result = _service.Add(l1, l2);
+            System.Console.WriteLine($"Sum: {result}");
+        }
+
+        private Length ReadLength(string label)
+        {
+            double value = ReadValue($"{label} value");
+            LengthUnit unit = ReadUnit($"{label} unit");
+            return _service.Create(value, unit);
         }
 
         private double ReadValue(string label)
