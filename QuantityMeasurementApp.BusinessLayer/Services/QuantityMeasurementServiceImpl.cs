@@ -2,26 +2,14 @@
 // PROJECT : QuantityMeasurementApp.BusinessLayer
 // FILE    : QuantityMeasurementServiceImpl.cs
 //
-// UC-15 : N-Tier Architecture
+// Purpose : Implements IQuantityMeasurementService.
+//           Converts QuantityDTO → QuantityModel (with IMeasurable unit)
+//           → delegates to IQuantityModelService → converts back to DTO.
 //
-// Purpose : Implements IQuantityMeasurementService by DELEGATING
-//           to the EXISTING Core services (ILengthService,
-//           IWeightService, IVolumeService, ITemperatureService).
-//
-//           ALL UC1-UC14 business logic stays exactly where it was
-//           (in QuantityMeasurementApp.Core.Services).  This class
-//           is a thin orchestration layer that:
-//             1. Accepts QuantityDTO input.
-//             2. Maps DTO → Core entities/units.
-//             3. Calls the appropriate existing Core service.
-//             4. Maps result → QuantityDTO output.
-//             5. Persists a QuantityMeasurementEntity to the repo.
-//             6. Returns the QuantityDTO result.
-//
-// Design Patterns : Dependency Injection (constructor)
-//
-// NOTE : PURELY ADDITIVE.  The 4 existing Core services are
-//        INJECTED, not modified.  No Core file is touched.
+// The only switch statements here are for DTO mapping (reading the
+// DTO enum to build the right MeasurableUnit wrapper).
+// ALL arithmetic/conversion dispatch is through IMeasurable — no
+// switch needed for the actual calculations.
 // ============================================================
 
 using System;
@@ -30,38 +18,22 @@ using QuantityMeasurementApp.Core.Interfaces;
 using QuantityMeasurementApp.ModelLayer;
 using QuantityMeasurementApp.RepositoryLayer;
 
-// Short aliases so DTO enums don't clash with Core enums
-using DtoL = QuantityMeasurementApp.ModelLayer.QuantityDTO.LengthUnit;
-using DtoW = QuantityMeasurementApp.ModelLayer.QuantityDTO.WeightUnit;
-using DtoV = QuantityMeasurementApp.ModelLayer.QuantityDTO.VolumeUnit;
-using DtoT = QuantityMeasurementApp.ModelLayer.QuantityDTO.TemperatureUnit;
-
 namespace QuantityMeasurementApp.BusinessLayer
 {
     public class QuantityMeasurementServiceImpl : IQuantityMeasurementService
     {
-        // ── Injected existing Core services (UC1-UC14 logic lives here) ──────────────
-
-        private readonly ILengthService      _lengthSvc;
-        private readonly IWeightService      _weightSvc;
-        private readonly IVolumeService      _volumeSvc;
-        private readonly ITemperatureService _tempSvc;
+        private readonly IQuantityModelService          _modelSvc;
+        private readonly ITemperatureService            _tempSvc;
         private readonly IQuantityMeasurementRepository _repo;
 
-        // ── Constructor (Dependency Injection) ────────────────────────────────────────
-
         public QuantityMeasurementServiceImpl(
-            ILengthService      lengthService,
-            IWeightService      weightService,
-            IVolumeService      volumeService,
-            ITemperatureService temperatureService,
+            IQuantityModelService          modelService,
+            ITemperatureService            temperatureService,
             IQuantityMeasurementRepository repository)
         {
-            _lengthSvc = lengthService      ?? throw new ArgumentNullException(nameof(lengthService));
-            _weightSvc = weightService      ?? throw new ArgumentNullException(nameof(weightService));
-            _volumeSvc = volumeService      ?? throw new ArgumentNullException(nameof(volumeService));
-            _tempSvc   = temperatureService ?? throw new ArgumentNullException(nameof(temperatureService));
-            _repo      = repository         ?? throw new ArgumentNullException(nameof(repository));
+            _modelSvc = modelService       ?? throw new ArgumentNullException(nameof(modelService));
+            _tempSvc  = temperatureService ?? throw new ArgumentNullException(nameof(temperatureService));
+            _repo     = repository         ?? throw new ArgumentNullException(nameof(repository));
         }
 
         // ════════════════════════════════════════════════════════════════════════════
@@ -75,36 +47,22 @@ namespace QuantityMeasurementApp.BusinessLayer
 
             try
             {
-                bool equal = first.Type switch
+                bool equal;
+
+                if (first.Type == QuantityDTO.MeasurementType.Temperature)
                 {
-                    // ── delegates straight to existing Core services ──────────────────
-                    QuantityDTO.MeasurementType.Length =>
-                        _lengthSvc.AreEqual(
-                            _lengthSvc.Create(first.Value,  MapCoreL(first.LengthUnitValue!.Value)),
-                            _lengthSvc.Create(second.Value, MapCoreL(second.LengthUnitValue!.Value))),
+                    equal = _tempSvc.AreEqual(
+                        _tempSvc.Create(first.Value,  ToTemperatureUnit(first.UnitLabel)),
+                        _tempSvc.Create(second.Value, ToTemperatureUnit(second.UnitLabel)));
+                }
+                else
+                {
+                    // Pure IMeasurable dispatch — no switch needed for the comparison
+                    equal = _modelSvc.AreEqual(ToModel(first), ToModel(second));
+                }
 
-                    QuantityDTO.MeasurementType.Weight =>
-                        _weightSvc.AreEqual(
-                            _weightSvc.Create(first.Value,  MapCoreW(first.WeightUnitValue!.Value)),
-                            _weightSvc.Create(second.Value, MapCoreW(second.WeightUnitValue!.Value))),
-
-                    QuantityDTO.MeasurementType.Volume =>
-                        _volumeSvc.AreEqual(
-                            _volumeSvc.Create(first.Value,  MapCoreV(first.VolumeUnitValue!.Value)),
-                            _volumeSvc.Create(second.Value, MapCoreV(second.VolumeUnitValue!.Value))),
-
-                    QuantityDTO.MeasurementType.Temperature =>
-                        _tempSvc.AreEqual(
-                            _tempSvc.Create(first.Value,  MapCoreT(first.TemperatureUnitValue!.Value)),
-                            _tempSvc.Create(second.Value, MapCoreT(second.TemperatureUnitValue!.Value))),
-
-                    _ => throw new QuantityMeasurementException("Unsupported measurement type.")
-                };
-
-                Persist(QuantityMeasurementEntity.OperationType.Compare,
-                        first, second, equal.ToString());
-
-                return ToResultDTO(equal ? 1.0 : 0.0, first);
+                Persist(QuantityMeasurementEntity.OperationType.Compare, first, second, equal.ToString());
+                return ToScalarDTO(equal ? 1.0 : 0.0, first);
             }
             catch (QuantityMeasurementException) { throw; }
             catch (Exception ex) { throw Wrap("Compare", first, second, ex); }
@@ -121,48 +79,27 @@ namespace QuantityMeasurementApp.BusinessLayer
 
             try
             {
-                QuantityDTO result = source.Type switch
+                QuantityDTO result;
+
+                if (source.Type == QuantityDTO.MeasurementType.Temperature)
                 {
-                    QuantityDTO.MeasurementType.Length =>
-                        LengthDTO(
-                            _lengthSvc.Convert(
-                                source.Value,
-                                MapCoreL(source.LengthUnitValue!.Value),
-                                MapCoreL(targetUnit.LengthUnitValue!.Value)),
-                            targetUnit.LengthUnitValue!.Value),
+                    double converted = _tempSvc.Convert(
+                        source.Value,
+                        ToTemperatureUnit(source.UnitLabel),
+                        ToTemperatureUnit(targetUnit.UnitLabel));
+                    result = new QuantityDTO(converted, targetUnit.TemperatureUnitValue!.Value);
+                }
+                else
+                {
+                    // IMeasurable dispatch — no switch for the math
+                    IMeasurable targetMeasurable = ToMeasurableUnit(targetUnit);
+                    QuantityModel converted = _modelSvc.ConvertTo(ToModel(source), targetMeasurable);
+                    result = FromModel(converted, targetUnit.Type);
+                }
 
-                    QuantityDTO.MeasurementType.Weight =>
-                        WeightDTO(
-                            _weightSvc.Convert(
-                                source.Value,
-                                MapCoreW(source.WeightUnitValue!.Value),
-                                MapCoreW(targetUnit.WeightUnitValue!.Value)),
-                            targetUnit.WeightUnitValue!.Value),
-
-                    QuantityDTO.MeasurementType.Volume =>
-                        VolumeDTO(
-                            _volumeSvc.Convert(
-                                source.Value,
-                                MapCoreV(source.VolumeUnitValue!.Value),
-                                MapCoreV(targetUnit.VolumeUnitValue!.Value)),
-                            targetUnit.VolumeUnitValue!.Value),
-
-                    QuantityDTO.MeasurementType.Temperature =>
-                        TempDTO(
-                            _tempSvc.Convert(
-                                source.Value,
-                                MapCoreT(source.TemperatureUnitValue!.Value),
-                                MapCoreT(targetUnit.TemperatureUnitValue!.Value)),
-                            targetUnit.TemperatureUnitValue!.Value),
-
-                    _ => throw new QuantityMeasurementException("Unsupported measurement type.")
-                };
-
-                // Single-operand entity (Convert)
                 _repo.Save(new QuantityMeasurementEntity(
                     QuantityMeasurementEntity.OperationType.Convert,
                     source, targetUnit, result.ToString()));
-
                 return result;
             }
             catch (QuantityMeasurementException) { throw; }
@@ -176,7 +113,7 @@ namespace QuantityMeasurementApp.BusinessLayer
         public QuantityDTO Add(QuantityDTO first, QuantityDTO second)
             => AddCore(first, second, null);
 
-        public QuantityDTO Add(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit)
+        public QuantityDTO AddWithTargetUnit(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit)
             => AddCore(first, second, targetUnit);
 
         private QuantityDTO AddCore(QuantityDTO first, QuantityDTO second, QuantityDTO? tu)
@@ -187,41 +124,13 @@ namespace QuantityMeasurementApp.BusinessLayer
 
             try
             {
-                QuantityDTO result = first.Type switch
-                {
-                    QuantityDTO.MeasurementType.Length => tu is null
-                        ? LengthResult(_lengthSvc.Add(
-                            _lengthSvc.Create(first.Value,  MapCoreL(first.LengthUnitValue!.Value)),
-                            _lengthSvc.Create(second.Value, MapCoreL(second.LengthUnitValue!.Value))))
-                        : LengthResult(_lengthSvc.Add(
-                            _lengthSvc.Create(first.Value,  MapCoreL(first.LengthUnitValue!.Value)),
-                            _lengthSvc.Create(second.Value, MapCoreL(second.LengthUnitValue!.Value)),
-                            MapCoreL(tu.LengthUnitValue!.Value))),
+                QuantityModel result = tu is null
+                    ? _modelSvc.Add(ToModel(first), ToModel(second))
+                    : _modelSvc.AddWithTargetUnit(ToModel(first), ToModel(second), ToMeasurableUnit(tu));
 
-                    QuantityDTO.MeasurementType.Weight => tu is null
-                        ? WeightResult(_weightSvc.Add(
-                            _weightSvc.Create(first.Value,  MapCoreW(first.WeightUnitValue!.Value)),
-                            _weightSvc.Create(second.Value, MapCoreW(second.WeightUnitValue!.Value))))
-                        : WeightResult(_weightSvc.Add(
-                            _weightSvc.Create(first.Value,  MapCoreW(first.WeightUnitValue!.Value)),
-                            _weightSvc.Create(second.Value, MapCoreW(second.WeightUnitValue!.Value)),
-                            MapCoreW(tu.WeightUnitValue!.Value))),
-
-                    QuantityDTO.MeasurementType.Volume => tu is null
-                        ? VolumeResult(_volumeSvc.Add(
-                            _volumeSvc.Create(first.Value,  MapCoreV(first.VolumeUnitValue!.Value)),
-                            _volumeSvc.Create(second.Value, MapCoreV(second.VolumeUnitValue!.Value))))
-                        : VolumeResult(_volumeSvc.Add(
-                            _volumeSvc.Create(first.Value,  MapCoreV(first.VolumeUnitValue!.Value)),
-                            _volumeSvc.Create(second.Value, MapCoreV(second.VolumeUnitValue!.Value)),
-                            MapCoreV(tu.VolumeUnitValue!.Value))),
-
-                    _ => throw new QuantityMeasurementException("Unsupported type for addition.")
-                };
-
-                Persist(QuantityMeasurementEntity.OperationType.Add, first, second,
-                        result.ToString(), tu);
-                return result;
+                QuantityDTO dto = FromModel(result, first.Type);
+                Persist(QuantityMeasurementEntity.OperationType.Add, first, second, dto.ToString(), tu);
+                return dto;
             }
             catch (QuantityMeasurementException) { throw; }
             catch (Exception ex) { throw Wrap("Add", first, second, ex); }
@@ -234,7 +143,7 @@ namespace QuantityMeasurementApp.BusinessLayer
         public QuantityDTO Subtract(QuantityDTO first, QuantityDTO second)
             => SubtractCore(first, second, null);
 
-        public QuantityDTO Subtract(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit)
+        public QuantityDTO SubtractWithTargetUnit(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit)
             => SubtractCore(first, second, targetUnit);
 
         private QuantityDTO SubtractCore(QuantityDTO first, QuantityDTO second, QuantityDTO? tu)
@@ -245,41 +154,13 @@ namespace QuantityMeasurementApp.BusinessLayer
 
             try
             {
-                QuantityDTO result = first.Type switch
-                {
-                    QuantityDTO.MeasurementType.Length => tu is null
-                        ? LengthResult(_lengthSvc.Subtract(
-                            _lengthSvc.Create(first.Value,  MapCoreL(first.LengthUnitValue!.Value)),
-                            _lengthSvc.Create(second.Value, MapCoreL(second.LengthUnitValue!.Value))))
-                        : LengthResult(_lengthSvc.Subtract(
-                            _lengthSvc.Create(first.Value,  MapCoreL(first.LengthUnitValue!.Value)),
-                            _lengthSvc.Create(second.Value, MapCoreL(second.LengthUnitValue!.Value)),
-                            MapCoreL(tu.LengthUnitValue!.Value))),
+                QuantityModel result = tu is null
+                    ? _modelSvc.Subtract(ToModel(first), ToModel(second))
+                    : _modelSvc.SubtractWithTargetUnit(ToModel(first), ToModel(second), ToMeasurableUnit(tu));
 
-                    QuantityDTO.MeasurementType.Weight => tu is null
-                        ? WeightResult(_weightSvc.Subtract(
-                            _weightSvc.Create(first.Value,  MapCoreW(first.WeightUnitValue!.Value)),
-                            _weightSvc.Create(second.Value, MapCoreW(second.WeightUnitValue!.Value))))
-                        : WeightResult(_weightSvc.Subtract(
-                            _weightSvc.Create(first.Value,  MapCoreW(first.WeightUnitValue!.Value)),
-                            _weightSvc.Create(second.Value, MapCoreW(second.WeightUnitValue!.Value)),
-                            MapCoreW(tu.WeightUnitValue!.Value))),
-
-                    QuantityDTO.MeasurementType.Volume => tu is null
-                        ? VolumeResult(_volumeSvc.Subtract(
-                            _volumeSvc.Create(first.Value,  MapCoreV(first.VolumeUnitValue!.Value)),
-                            _volumeSvc.Create(second.Value, MapCoreV(second.VolumeUnitValue!.Value))))
-                        : VolumeResult(_volumeSvc.Subtract(
-                            _volumeSvc.Create(first.Value,  MapCoreV(first.VolumeUnitValue!.Value)),
-                            _volumeSvc.Create(second.Value, MapCoreV(second.VolumeUnitValue!.Value)),
-                            MapCoreV(tu.VolumeUnitValue!.Value))),
-
-                    _ => throw new QuantityMeasurementException("Unsupported type for subtraction.")
-                };
-
-                Persist(QuantityMeasurementEntity.OperationType.Subtract, first, second,
-                        result.ToString(), tu);
-                return result;
+                QuantityDTO dto = FromModel(result, first.Type);
+                Persist(QuantityMeasurementEntity.OperationType.Subtract, first, second, dto.ToString(), tu);
+                return dto;
             }
             catch (QuantityMeasurementException) { throw; }
             catch (Exception ex) { throw Wrap("Subtract", first, second, ex); }
@@ -297,29 +178,11 @@ namespace QuantityMeasurementApp.BusinessLayer
 
             try
             {
-                double ratio = first.Type switch
-                {
-                    QuantityDTO.MeasurementType.Length =>
-                        _lengthSvc.Divide(
-                            _lengthSvc.Create(first.Value,  MapCoreL(first.LengthUnitValue!.Value)),
-                            _lengthSvc.Create(second.Value, MapCoreL(second.LengthUnitValue!.Value))),
+                // Pure IMeasurable dispatch — no switch
+                double ratio = _modelSvc.Divide(ToModel(first), ToModel(second));
 
-                    QuantityDTO.MeasurementType.Weight =>
-                        _weightSvc.Divide(
-                            _weightSvc.Create(first.Value,  MapCoreW(first.WeightUnitValue!.Value)),
-                            _weightSvc.Create(second.Value, MapCoreW(second.WeightUnitValue!.Value))),
-
-                    QuantityDTO.MeasurementType.Volume =>
-                        _volumeSvc.Divide(
-                            _volumeSvc.Create(first.Value,  MapCoreV(first.VolumeUnitValue!.Value)),
-                            _volumeSvc.Create(second.Value, MapCoreV(second.VolumeUnitValue!.Value))),
-
-                    _ => throw new QuantityMeasurementException("Unsupported type for division.")
-                };
-
-                Persist(QuantityMeasurementEntity.OperationType.Divide, first, second,
-                        ratio.ToString("G6"));
-                return ToResultDTO(ratio, first);
+                Persist(QuantityMeasurementEntity.OperationType.Divide, first, second, ratio.ToString("G6"));
+                return ToScalarDTO(ratio, first);
             }
             catch (QuantityMeasurementException) { throw; }
             catch (DivideByZeroException ex)
@@ -331,88 +194,58 @@ namespace QuantityMeasurementApp.BusinessLayer
         }
 
         // ════════════════════════════════════════════════════════════════════════════
-        // PRIVATE – DTO unit  →  Core unit mappings
+        // PRIVATE – DTO → QuantityModel
+        //
+        // Switch here is for DTO MAPPING only — deciding which MeasurableUnit
+        // wrapper to create. The math itself never switches on type.
         // ════════════════════════════════════════════════════════════════════════════
 
-        private static LengthUnit MapCoreL(DtoL u) => u switch
-        {
-            DtoL.Feet       => LengthUnit.Feet,
-            DtoL.Inch       => LengthUnit.Inch,
-            DtoL.Yard       => LengthUnit.Yard,
-            DtoL.Centimeter => LengthUnit.Centimeter,
-            _ => throw new QuantityMeasurementException($"Unknown LengthUnit: {u}")
-        };
+        private static QuantityModel ToModel(QuantityDTO dto)
+            => new QuantityModel(dto.Value, ToMeasurableUnit(dto));
 
-        private static WeightUnit MapCoreW(DtoW u) => u switch
+        private static IMeasurable ToMeasurableUnit(QuantityDTO dto) => dto.Type switch
         {
-            DtoW.Gram     => WeightUnit.Gram,
-            DtoW.Kilogram => WeightUnit.Kilogram,
-            DtoW.Tonne    => WeightUnit.Tonne,
-            _ => throw new QuantityMeasurementException($"Unknown WeightUnit: {u}")
-        };
+            QuantityDTO.MeasurementType.Length =>
+                new LengthMeasurableUnit(Enum.Parse<LengthUnit>(dto.UnitLabel, true)),
 
-        private static VolumeUnit MapCoreV(DtoV u) => u switch
-        {
-            DtoV.Litre      => VolumeUnit.Litre,
-            DtoV.Millilitre => VolumeUnit.Millilitre,
-            DtoV.Gallon     => VolumeUnit.Gallon,
-            _ => throw new QuantityMeasurementException($"Unknown VolumeUnit: {u}")
-        };
+            QuantityDTO.MeasurementType.Weight =>
+                new WeightMeasurableUnit(Enum.Parse<WeightUnit>(dto.UnitLabel, true)),
 
-        private static TemperatureUnit MapCoreT(DtoT u) => u switch
-        {
-            DtoT.Celsius    => TemperatureUnit.Celsius,
-            DtoT.Fahrenheit => TemperatureUnit.Fahrenheit,
-            DtoT.Kelvin     => TemperatureUnit.Kelvin,
-            _ => throw new QuantityMeasurementException($"Unknown TemperatureUnit: {u}")
+            QuantityDTO.MeasurementType.Volume =>
+                new VolumeMeasurableUnit(Enum.Parse<VolumeUnit>(dto.UnitLabel, true)),
+
+            QuantityDTO.MeasurementType.Temperature =>
+                new TemperatureMeasurableUnit(Enum.Parse<TemperatureUnit>(dto.UnitLabel, true)),
+
+            _ => throw new QuantityMeasurementException($"Unsupported measurement type: {dto.Type}")
         };
 
         // ════════════════════════════════════════════════════════════════════════════
-        // PRIVATE – Core entity  →  QuantityDTO
+        // PRIVATE – QuantityModel → QuantityDTO
         // ════════════════════════════════════════════════════════════════════════════
 
-        // Length
-        private static QuantityDTO LengthResult(Length l)   => LengthDTO(l.Value, MapDtoL(l.Unit));
-        private static QuantityDTO LengthDTO(double v, DtoL u) => new(v, u);
-
-        private static DtoL MapDtoL(LengthUnit u) => u switch
+        private static QuantityDTO FromModel(QuantityModel model, QuantityDTO.MeasurementType type)
         {
-            LengthUnit.Feet       => DtoL.Feet,
-            LengthUnit.Inch       => DtoL.Inch,
-            LengthUnit.Yard       => DtoL.Yard,
-            LengthUnit.Centimeter => DtoL.Centimeter,
-            _ => throw new QuantityMeasurementException($"Unknown LengthUnit: {u}")
-        };
+            string unitName = model.Unit.GetUnitName();
+            return type switch
+            {
+                QuantityDTO.MeasurementType.Length =>
+                    new QuantityDTO(model.Value, Enum.Parse<QuantityDTO.LengthUnit>(unitName, true)),
 
-        // Weight
-        private static QuantityDTO WeightResult(Weight w)   => WeightDTO(w.Value, MapDtoW(w.Unit));
-        private static QuantityDTO WeightDTO(double v, DtoW u) => new(v, u);
+                QuantityDTO.MeasurementType.Weight =>
+                    new QuantityDTO(model.Value, Enum.Parse<QuantityDTO.WeightUnit>(unitName, true)),
 
-        private static DtoW MapDtoW(WeightUnit u) => u switch
-        {
-            WeightUnit.Gram     => DtoW.Gram,
-            WeightUnit.Kilogram => DtoW.Kilogram,
-            WeightUnit.Tonne    => DtoW.Tonne,
-            _ => throw new QuantityMeasurementException($"Unknown WeightUnit: {u}")
-        };
+                QuantityDTO.MeasurementType.Volume =>
+                    new QuantityDTO(model.Value, Enum.Parse<QuantityDTO.VolumeUnit>(unitName, true)),
 
-        // Volume
-        private static QuantityDTO VolumeResult(Volume v)     => VolumeDTO(v.Value, MapDtoV(v.Unit));
-        private static QuantityDTO VolumeDTO(double v, DtoV u) => new(v, u);
+                QuantityDTO.MeasurementType.Temperature =>
+                    new QuantityDTO(model.Value, Enum.Parse<QuantityDTO.TemperatureUnit>(unitName, true)),
 
-        private static DtoV MapDtoV(VolumeUnit u) => u switch
-        {
-            VolumeUnit.Litre      => DtoV.Litre,
-            VolumeUnit.Millilitre => DtoV.Millilitre,
-            VolumeUnit.Gallon     => DtoV.Gallon,
-            _ => throw new QuantityMeasurementException($"Unknown VolumeUnit: {u}")
-        };
+                _ => throw new QuantityMeasurementException($"Cannot convert model to DTO for type: {type}")
+            };
+        }
 
-        // Temperature
-        private static QuantityDTO TempDTO(double v, DtoT u) => new(v, u);
-
-        // Generic scalar result (Compare / Divide output)
-        private static QuantityDTO ToResultDTO(double value, QuantityDTO source) => source.Type switch
+        private static QuantityDTO ToScalarDTO(double value, QuantityDTO source) => source.Type switch
         {
             QuantityDTO.MeasurementType.Length      => new(value, source.LengthUnitValue!.Value),
             QuantityDTO.MeasurementType.Weight      => new(value, source.WeightUnitValue!.Value),
@@ -421,8 +254,14 @@ namespace QuantityMeasurementApp.BusinessLayer
             _ => throw new QuantityMeasurementException("Unsupported type.")
         };
 
+        private static TemperatureUnit ToTemperatureUnit(string label)
+        {
+            if (Enum.TryParse<TemperatureUnit>(label, true, out var result)) return result;
+            throw new QuantityMeasurementException($"Unknown temperature unit: {label}");
+        }
+
         // ════════════════════════════════════════════════════════════════════════════
-        // PRIVATE – validation helpers
+        // PRIVATE – validation
         // ════════════════════════════════════════════════════════════════════════════
 
         private static void Validate(QuantityDTO a, QuantityDTO b)
@@ -434,8 +273,7 @@ namespace QuantityMeasurementApp.BusinessLayer
         private static void ValidateSameCategory(QuantityDTO a, QuantityDTO b, string op)
         {
             if (a.Type != b.Type)
-                throw new QuantityMeasurementException(
-                    $"Cannot {op} quantities of different categories: {a.Type} vs {b.Type}.");
+                throw new QuantityMeasurementException($"Cannot {op} {a.Type} with {b.Type}.");
         }
 
         private static void ValidateArithmetic(QuantityDTO dto, string op)
@@ -466,12 +304,9 @@ namespace QuantityMeasurementApp.BusinessLayer
             catch { /* non-fatal */ }
         }
 
-        private QuantityMeasurementException Wrap(
-            string op, QuantityDTO first, QuantityDTO? second, Exception ex)
+        private QuantityMeasurementException Wrap(string op, QuantityDTO first, QuantityDTO? second, Exception ex)
         {
-            PersistError(
-                Enum.Parse<QuantityMeasurementEntity.OperationType>(op, true),
-                first, second, ex.Message);
+            PersistError(Enum.Parse<QuantityMeasurementEntity.OperationType>(op, true), first, second, ex.Message);
             return new QuantityMeasurementException($"{op} failed: {ex.Message}", ex);
         }
     }

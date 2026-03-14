@@ -33,14 +33,14 @@ namespace QuantityMeasurementApp.BusinessLayer
         QuantityDTO Add(QuantityDTO first, QuantityDTO second);
 
         /// <summary>Add two quantities; result expressed in targetUnit.</summary>
-        QuantityDTO Add(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit);
+        QuantityDTO AddWithTargetUnit(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit);
 
         // ── Subtract ─────────────────────────────────────────────────────────────────
         /// <summary>Subtract second from first; result unit = unit of first.</summary>
         QuantityDTO Subtract(QuantityDTO first, QuantityDTO second);
 
         /// <summary>Subtract and express result in targetUnit.</summary>
-        QuantityDTO Subtract(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit);
+        QuantityDTO SubtractWithTargetUnit(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit);
 
         // ── Divide ───────────────────────────────────────────────────────────────────
         /// <summary>Divide first by second; returns dimensionless scalar in a DTO.</summary>
