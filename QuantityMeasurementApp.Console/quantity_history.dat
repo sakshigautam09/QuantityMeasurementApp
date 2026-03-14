@@ -9,3 +9,7 @@
 [2026-03-12 06:03:00] Compare | Op1: 1 Feet | Op2: 1 Feet | Result: True
 [2026-03-12 06:03:10] Compare | Op1: 21 Feet | Op2: 42 Inch | Result: False
 [2026-03-12 06:03:47] Add | Op1: 12 Feet | Op2: 12 Inch | Result: 13 Feet
+[2026-03-13 10:20:29] Compare | Op1: 12 Feet | Op2: 12 Inch | Result: False
+[2026-03-13 10:24:19] Compare | Op1: 12 Feet | Op2: 12 Feet | Result: True
+[2026-03-13 10:24:29] Compare | Op1: 12 Feet | Op2: 1 Inch | Result: False
+[2026-03-13 10:33:25] Compare | Op1: 12 Feet | Op2: 12 Inch | Result: False

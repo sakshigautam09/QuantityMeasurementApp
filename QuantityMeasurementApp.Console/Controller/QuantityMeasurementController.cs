@@ -226,7 +226,7 @@ namespace QuantityMeasurementApp.BusinessLayer
             var first  = ReadLengthDTO("first");
             var second = ReadLengthDTO("second");
             var target = ReadLengthUnitHint("target unit");
-            PerformAdd(first, second, target);
+            PerformAddWithTargetUnit(first, second, target);
         }
 
         private void SubtractLengths()
@@ -241,7 +241,7 @@ namespace QuantityMeasurementApp.BusinessLayer
             var first  = ReadLengthDTO("first");
             var second = ReadLengthDTO("second");
             var target = ReadLengthUnitHint("target unit");
-            PerformSubtract(first, second, target);
+            PerformSubtractWithTargetUnit(first, second, target);
         }
 
         private void DivideLengths()
@@ -281,7 +281,7 @@ namespace QuantityMeasurementApp.BusinessLayer
             var first  = ReadWeightDTO("first");
             var second = ReadWeightDTO("second");
             var target = ReadWeightUnitHint("target unit");
-            PerformAdd(first, second, target);
+            PerformAddWithTargetUnit(first, second, target);
         }
 
         private void SubtractWeights()
@@ -296,7 +296,7 @@ namespace QuantityMeasurementApp.BusinessLayer
             var first  = ReadWeightDTO("first");
             var second = ReadWeightDTO("second");
             var target = ReadWeightUnitHint("target unit");
-            PerformSubtract(first, second, target);
+            PerformSubtractWithTargetUnit(first, second, target);
         }
 
         private void DivideWeights()
@@ -336,7 +336,7 @@ namespace QuantityMeasurementApp.BusinessLayer
             var first  = ReadVolumeDTO("first");
             var second = ReadVolumeDTO("second");
             var target = ReadVolumeUnitHint("target unit");
-            PerformAdd(first, second, target);
+            PerformAddWithTargetUnit(first, second, target);
         }
 
         private void SubtractVolumes()
@@ -351,7 +351,7 @@ namespace QuantityMeasurementApp.BusinessLayer
             var first  = ReadVolumeDTO("first");
             var second = ReadVolumeDTO("second");
             var target = ReadVolumeUnitHint("target unit");
-            PerformSubtract(first, second, target);
+            PerformSubtractWithTargetUnit(first, second, target);
         }
 
         private void DivideVolumes()
@@ -420,11 +420,11 @@ namespace QuantityMeasurementApp.BusinessLayer
             { return Error("Add", ex.Message, first); }
         }
 
-        public QuantityDTO PerformAdd(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit)
+        public QuantityDTO PerformAddWithTargetUnit(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit)
         {
             try
             {
-                var result = _service.Add(first, second, targetUnit);
+                var result = _service.AddWithTargetUnit(first, second, targetUnit);
                 System.Console.WriteLine($"Sum: {result}");
                 return result;
             }
@@ -444,11 +444,11 @@ namespace QuantityMeasurementApp.BusinessLayer
             { return Error("Subtract", ex.Message, first); }
         }
 
-        public QuantityDTO PerformSubtract(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit)
+        public QuantityDTO PerformSubtractWithTargetUnit(QuantityDTO first, QuantityDTO second, QuantityDTO targetUnit)
         {
             try
             {
-                var result = _service.Subtract(first, second, targetUnit);
+                var result = _service.SubtractWithTargetUnit(first, second, targetUnit);
                 System.Console.WriteLine($"Difference: {result}");
                 return result;
             }

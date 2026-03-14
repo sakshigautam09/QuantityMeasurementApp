@@ -12,7 +12,12 @@
     <ProjectReference Include="..\QuantityMeasurementApp.ModelLayer\QuantityMeasurementApp.ModelLayer.csproj" />
     <ProjectReference Include="..\QuantityMeasurementApp.BusinessLayer\QuantityMeasurementApp.BusinessLayer.csproj" />
     <ProjectReference Include="..\QuantityMeasurementApp.RepositoryLayer\QuantityMeasurementApp.RepositoryLayer.csproj" />
+  </ItemGroup>
 
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

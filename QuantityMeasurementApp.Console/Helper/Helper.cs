@@ -2,12 +2,11 @@
 // PROJECT : QuantityMeasurementApp.Console
 // FILE    : Helper.cs
 //
-// UC-15 : N-Tier Architecture
-//
-// Purpose : Factory that initializes and wires all dependencies.
-//           Program.cs calls this to get a ready controller.
-//
-// Design Pattern : Factory Pattern
+// Purpose : Factory — wires all dependencies and returns a
+//           ready-to-use controller.
+//           Only ITemperatureService is kept as a direct Core
+//           injection because temperature needs special handling
+//           in Compare/Convert.
 // ============================================================
 
 using QuantityMeasurementApp.BusinessLayer;
@@ -20,24 +19,23 @@ namespace QuantityMeasurementApp.Console
     {
         public static QuantityMeasurementController CreateController()
         {
-            // 1. Repository
+            // 1. Repository (singleton)
             var repository = QuantityMeasurementCacheRepository.Instance;
 
-            // 2. Core Services (UC1-UC14 logic – unchanged)
-            var lengthService      = new LengthService();
-            var weightService      = new WeightService();
-            var volumeService      = new VolumeService();
+            // 2. QuantityModelService — owns all arithmetic / conversion logic
+            var modelService = new QuantityModelServiceImpl();
+
+            // 3. TemperatureService — kept because temperature conversion formulas
+            //    are non-linear and already implemented in Core.
             var temperatureService = new TemperatureService();
 
-            // 3. Service (UC15 – wraps Core, adds DTO mapping + persistence)
+            // 4. Main service
             var service = new QuantityMeasurementServiceImpl(
-                lengthService,
-                weightService,
-                volumeService,
+                modelService,
                 temperatureService,
                 repository);
 
-            // 4. Controller
+            // 5. Controller
             return new QuantityMeasurementController(service);
         }
     }
