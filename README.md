@@ -310,3 +310,124 @@
     * Improve test coverage with integration tests
     * Optimize architecture for scalability
     * Prepare project documentation and deployment
+
+<!-- ---------------------------------------------------- -->
+## Day — March 16, 2026 — UC-16: Database Testing
+## Topic: Integration Testing
+
+## What I Learned
+    * Importance of testing database workflows
+    * Handling edge cases in data persistence
+    * Validating data integrity after operations
+
+## Task for the Day
+    * Test CRUD operations with SQL Server
+    * Verify correct storage of operation history
+
+## What’s Next
+    * Optimize database interactions and improve performance
+
+<!-- --------------------------------------------------- -->
+## Day — March 17, 2026 — UC-16: Optimization
+## Topic: Performance & Refactoring
+
+## What I Learned
+    * Basics of query optimization
+    * Improving code readability and maintainability
+
+## Task for the Day
+    * Refactor repository code
+    * Optimize database queries
+
+## What’s Next
+    * Begin security implementation (UC-17)
+
+<!-- --------------------------------------------------- -->
+## Day — March 18, 2026 — UC-17: Security Fundamentals
+## Topic: Cryptography Basics
+
+## What I Learned
+    * Difference between hashing and encryption
+    * Use cases of BCrypt and AES
+
+## Task for the Day
+    * Study security concepts
+    * Plan implementation of password hashing and data encryption
+
+## What’s Next
+    * Implement BCrypt password hashing
+
+<!-- ------------------------------------------------- -->
+## Day — March 19, 2026 — UC-17: BCrypt Implementation
+## Topic: Password Security
+
+## What I Learned
+    * Salt generation and password hashing
+    * One-way encryption concept
+
+## Task for the Day
+    * Implement password hashing service
+    * Add password verification logic
+
+## What’s Next
+    * Implement AES encryption for sensitive data
+
+<!-- ------------------------------------------------ -->
+## Day — March 20, 2026 — UC-17: AES Encryption
+## Topic: Data Encryption
+
+## What I Learned
+    * Symmetric encryption using AES-256
+    * Key and IV management
+
+## Task for the Day
+    * Implement encryption and decryption service
+    * Encrypt sensitive fields like email and results
+
+## What’s Next
+    * Implement JWT authentication
+
+<!-- ---------------------------------------------------- -->
+## Day — March 21, 2026 — UC-17: JWT Implementation
+## Topic: Token-Based Authentication
+
+## What I Learned
+    * Structure of JWT (Header, Payload, Signature)
+    * Authentication flow using tokens
+
+## Task for the Day
+    * Generate JWT tokens
+    * Configure issuer, audience, and expiry
+
+## What’s Next
+    * Integrate all security components together
+
+<!-- --------------------------------------------------- -->
+## Day — March 22, 2026 — UC-17: Security Integration
+## Topic: End-to-End Security Flow
+
+## What I Learned
+    * Combining BCrypt, AES, and JWT
+    * Designing secure user workflows
+
+## Task for the Day
+    * Integrate hashing, encryption, and token generation
+    * Implement secure register/login flow
+
+## What’s Next
+    * Write test cases for security features
+
+<!-- ---------------------------------------------------------- -->
+## Day — March 23, 2026 — UC-17: Testing & Finalization
+## Topic: Security Testing & Validation
+
+## What I Learned
+    *Writing unit tests for encryption and hashing
+    *Validating complete security workflow
+
+## Task for the Day
+    * Test BCrypt, AES, and JWT implementations
+    * Verify end-to-end functionality
+
+## What’s Next
+    * Prepare documentation and optimize for production
