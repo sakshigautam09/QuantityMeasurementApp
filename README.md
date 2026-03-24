@@ -316,118 +316,141 @@
 ## Topic: Integration Testing
 
 ## What I Learned
-    * Importance of testing database workflows
-    * Handling edge cases in data persistence
-    * Validating data integrity after operations
+    * Learned how to validate complete database workflows using integration testing
+    * Understood how data flows from service layer to repository and SQL Server
+    * Gained clarity on handling edge cases and ensuring data consistency
 
 ## Task for the Day
-    * Test CRUD operations with SQL Server
-    * Verify correct storage of operation history
+    * Tested CRUD operations with SQL Server
+    * Verified operation history is stored correctly with metadata
+    * Checked data accuracy directly from the database
 
 ## What’s Next
-    * Optimize database interactions and improve performance
+    * Optimize database queries and improve repository performance
+    * Refactor code for better maintainability
 
 <!-- --------------------------------------------------- -->
 ## Day — March 17, 2026 — UC-16: Optimization
 ## Topic: Performance & Refactoring
 
 ## What I Learned
-    * Basics of query optimization
-    * Improving code readability and maintainability
+    * Learned basics of query optimization and improving execution efficiency
+    * Understood importance of clean and maintainable repository code
+    * Explored ways to reduce redundancy and improve readability
 
 ## Task for the Day
-    * Refactor repository code
-    * Optimize database queries
+    * Refactored repository methods for better structure
+    * Optimized queries for faster data operations
+    * Cleaned up redundant or complex code
 
 ## What’s Next
-    * Begin security implementation (UC-17)
+    * Start working on security implementation (UC-17)
+    * Study cryptographic concepts
 
 <!-- --------------------------------------------------- -->
 ## Day — March 18, 2026 — UC-17: Security Fundamentals
 ## Topic: Cryptography Basics
 
 ## What I Learned
-    * Difference between hashing and encryption
-    * Use cases of BCrypt and AES
+    * Understood difference between hashing and encryption
+    * Learned why passwords must be hashed and not stored in plain text
+    * Got overview of AES encryption and secure data handling
 
 ## Task for the Day
-    * Study security concepts
-    * Plan implementation of password hashing and data encryption
+    * Studied BCrypt and AES concepts
+    * Planned how to integrate security into application
+    * Identified sensitive fields requiring protection
 
 ## What’s Next
     * Implement BCrypt password hashing
+    * Begin coding security services
 
 <!-- ------------------------------------------------- -->
 ## Day — March 19, 2026 — UC-17: BCrypt Implementation
 ## Topic: Password Security
 
 ## What I Learned
-    * Salt generation and password hashing
-    * One-way encryption concept
+    * Learned how BCrypt generates salt and secure password hashes
+    * Understood one-way hashing and password verification
+    * Explored secure storage of user credentials
 
 ## Task for the Day
-    * Implement password hashing service
-    * Add password verification logic
+    * Implemented password hashing using BCrypt
+    * Added password verification functionality
+    * Tested hashing with different inputs
 
 ## What’s Next
     * Implement AES encryption for sensitive data
+    * Strengthen security layer
 
 <!-- ------------------------------------------------ -->
 ## Day — March 20, 2026 — UC-17: AES Encryption
 ## Topic: Data Encryption
 
 ## What I Learned
-    * Symmetric encryption using AES-256
-    * Key and IV management
+    * Learned AES-256 encryption and its use for protecting sensitive data
+    * Understood role of encryption keys and IV
+    * Differentiated encryption from hashing
 
 ## Task for the Day
-    * Implement encryption and decryption service
-    * Encrypt sensitive fields like email and results
+    * Implemented encryption and decryption service
+    * Encrypted sensitive fields like email and results
+    * Verified correct decryption of data
 
 ## What’s Next
     * Implement JWT authentication
+    * Learn token-based security
 
 <!-- ---------------------------------------------------- -->
 ## Day — March 21, 2026 — UC-17: JWT Implementation
 ## Topic: Token-Based Authentication
 
 ## What I Learned
-    * Structure of JWT (Header, Payload, Signature)
-    * Authentication flow using tokens
+    * Understood structure of JWT (Header, Payload, Signature)
+    * Learned how tokens enable secure authentication
+    * Explored token expiry and validation
 
 ## Task for the Day
-    * Generate JWT tokens
-    * Configure issuer, audience, and expiry
+    * Implemented JWT token generation
+    * Configured issuer, audience, and expiry
+    * Tested token generation and structure
 
 ## What’s Next
     * Integrate all security components together
+    * Build complete secure flow
 
 <!-- --------------------------------------------------- -->
 ## Day — March 22, 2026 — UC-17: Security Integration
 ## Topic: End-to-End Security Flow
 
 ## What I Learned
-    * Combining BCrypt, AES, and JWT
-    * Designing secure user workflows
+    * Learned how hashing, encryption, and authentication work together
+    * Understood secure workflow for user operations
+    * Explored best practices for data protection
 
 ## Task for the Day
-    * Integrate hashing, encryption, and token generation
-    * Implement secure register/login flow
+    * Integrated BCrypt, AES, and JWT
+    * Implemented secure register/login flow
+    * Verified secure handling of user data
 
 ## What’s Next
-    * Write test cases for security features
+    * Write test cases for all security features
+    * Validate complete system
 
 <!-- ---------------------------------------------------------- -->
 ## Day — March 23, 2026 — UC-17: Testing & Finalization
 ## Topic: Security Testing & Validation
 
 ## What I Learned
-    *Writing unit tests for encryption and hashing
-    *Validating complete security workflow
+    * Learned how to test hashing, encryption, and token generation
+    * Understood importance of validating full security workflow
+    * Explored strategies for reliable testing
 
 ## Task for the Day
-    * Test BCrypt, AES, and JWT implementations
-    * Verify end-to-end functionality
+    * Wrote tests for BCrypt, AES, and JWT
+    * Verified encryption/decryption and authentication flow
+    * Ensured all components work correctly together
 
 ## What’s Next
-    * Prepare documentation and optimize for production
+    * Prepare project documentation
+    * Optimize for production and scalability
