@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>QuantityMeasurementApp.RepositoryLayer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- EF Core — replaces raw ADO.NET (UC-17) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore"             Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"  Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools"      Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design"     Version="9.0.0" />
+
+    <!-- Redis — distributed caching (UC-17) -->
+    <PackageReference Include="StackExchange.Redis"                      Version="2.8.16" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0" />
+
+    <!-- Configuration — for appsettings.json -->
+    <PackageReference Include="Microsoft.Extensions.Configuration"      Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+
+    <!-- JSON for cache serialization (already included in net10.0 SDK) -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuantityMeasurementApp.ModelLayer\QuantityMeasurementApp.ModelLayer.csproj" />
+  </ItemGroup>
+
+</Project>
