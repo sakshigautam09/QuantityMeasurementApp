@@ -1,0 +1,99 @@
+[
+  {
+    "OperationType": "CONVERT",
+    "Timestamp": "2026-03-23T11:28:12.8912759Z",
+    "HasError": false,
+    "ErrorMessage": "",
+    "Operand1": {
+      "Value": 23,
+      "UnitName": "FT",
+      "Category": "LENGTH"
+    },
+    "Operand2": null,
+    "Result": {
+      "Value": 7.67,
+      "UnitName": "YARDS",
+      "Category": "LENGTH"
+    }
+  },
+  {
+    "OperationType": "SUBTRACT",
+    "Timestamp": "2026-03-23T11:28:12.8913941Z",
+    "HasError": false,
+    "ErrorMessage": "",
+    "Operand1": {
+      "Value": 23,
+      "UnitName": "FT",
+      "Category": "LENGTH"
+    },
+    "Operand2": {
+      "Value": 67,
+      "UnitName": "IN",
+      "Category": "LENGTH"
+    },
+    "Result": {
+      "Value": 17.42,
+      "UnitName": "FEET",
+      "Category": "LENGTH"
+    }
+  },
+  {
+    "OperationType": "ADD",
+    "Timestamp": "2026-03-23T11:28:12.8913951Z",
+    "HasError": false,
+    "ErrorMessage": "",
+    "Operand1": {
+      "Value": 23,
+      "UnitName": "KG",
+      "Category": "WEIGHT"
+    },
+    "Operand2": {
+      "Value": 45,
+      "UnitName": "G",
+      "Category": "WEIGHT"
+    },
+    "Result": {
+      "Value": 23.05,
+      "UnitName": "KILOGRAM",
+      "Category": "WEIGHT"
+    }
+  },
+  {
+    "OperationType": "ADD",
+    "Timestamp": "2026-03-23T11:28:12.8914663Z",
+    "HasError": true,
+    "ErrorMessage": "Temperature does not support Add.",
+    "Operand1": {
+      "Value": 23,
+      "UnitName": "C",
+      "Category": "TEMPERATURE"
+    },
+    "Operand2": {
+      "Value": 56,
+      "UnitName": "F",
+      "Category": "TEMPERATURE"
+    },
+    "Result": null
+  },
+  {
+    "OperationType": "COMPARE",
+    "Timestamp": "2026-03-23T11:28:20.99303Z",
+    "HasError": false,
+    "ErrorMessage": "",
+    "Operand1": {
+      "Value": 2,
+      "UnitName": "C",
+      "Category": "TEMPERATURE"
+    },
+    "Operand2": {
+      "Value": 5,
+      "UnitName": "K",
+      "Category": "TEMPERATURE"
+    },
+    "Result": {
+      "Value": 0,
+      "UnitName": "NOT_EQUAL",
+      "Category": "RESULT"
+    }
+  }
+]

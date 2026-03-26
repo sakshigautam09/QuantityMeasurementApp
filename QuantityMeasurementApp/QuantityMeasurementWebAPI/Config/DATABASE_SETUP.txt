@@ -1,0 +1,24 @@
+DATABASE SETUP (SSMS / EF Core)
+================================
+
+CONFIG LOCATION
+  All API settings (including ConnectionStrings) are in this folder:
+  QuantityMeasurementWebAPI/Config/
+  They are copied to the build output next to the .exe so the ORM always loads the same SQL Server.
+
+WHY ROWS MIGHT NOT APPEAR IN SSMS
+  1) Wrong Server= in ConnectionStrings:QuantityMeasurementDb — must match the instance you open in SSMS.
+     - Visual Studio LocalDB: Server=(localdb)\MSSQLLocalDB
+     - SQL Express:          Server=localhost\SQLEXPRESS  (or .\SQLEXPRESS)
+     - Default instance:     Server=localhost
+  2) SQL Server service not running, or TCP/firewall blocking.
+  3) Migrations never applied — fix the connection string, restart the API, or run:
+     dotnet ef database update --project QuantityMeasurementRepository --startup-project QuantityMeasurementWebAPI
+  4) You connected in SSMS to a different server than the one in appsettings.
+
+VERIFY
+  - GET http://localhost:5000/health — sqlserver should be Healthy.
+  - In SSMS: same Server name as in appsettings, database QuantityMeasurementDB, tables users and quantity_measurements.
+
+REDIS
+  Optional. If Redis is down, the app uses memory cache; user/quantity writes still go to SQL Server.

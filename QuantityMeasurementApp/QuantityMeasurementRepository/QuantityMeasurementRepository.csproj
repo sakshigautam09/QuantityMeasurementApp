@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration"           Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+
+    <!-- UC17: EF Core → SQL Server (SSMS) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore"                   Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"         Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design"            Version="8.0.0" />
+
+    <!-- UC17: Redis distributed cache -->
+    <PackageReference Include="StackExchange.Redis"                             Version="2.8.16" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions"       Version="8.0.0" />
+
+    <!-- UC17: BCrypt password hashing + salting -->
+    <PackageReference Include="BCrypt.Net-Next"                                 Version="4.0.3" />
+
+    <!-- Logging + DI -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"            Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuantityMeasurementModel\QuantityMeasurementModel.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,23 @@
+[
+  {
+    "OperationType": "COMPARE",
+    "Timestamp": "2026-03-20T06:13:36.1841369Z",
+    "HasError": false,
+    "ErrorMessage": "",
+    "Operand1": {
+      "Value": 89,
+      "UnitName": "CELSIUS",
+      "Category": "TEMPERATURE"
+    },
+    "Operand2": {
+      "Value": 92,
+      "UnitName": "CELSIUS",
+      "Category": "TEMPERATURE"
+    },
+    "Result": {
+      "Value": 0,
+      "UnitName": "NOT_EQUAL",
+      "Category": "RESULT"
+    }
+  }
+]
