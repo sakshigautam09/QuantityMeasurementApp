@@ -49,6 +49,17 @@ namespace QuantityMeasurementWebAPI.Controllers
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto req)
             => Ok(await _auth.RefreshTokenAsync(req));
 
+        /// <summary>Google OAuth — verifies Google ID token, auto-registers on first sign-in, returns JWT.</summary>
+        [HttpPost("google-login")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthResponseDto), 200)]
+        [ProducesResponseType(typeof(ErrorResponseDto), 401)]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequestDto req)
+        {
+            _logger.LogInformation("[UserController] Google login attempt");
+            return Ok(await _auth.GoogleLoginAsync(req));
+        }
+
         /// <summary>Get current user's profile from JWT claims. Requires Bearer token.</summary>
         [HttpGet("profile")]
         [Authorize]

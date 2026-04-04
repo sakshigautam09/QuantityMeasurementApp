@@ -10,5 +10,6 @@ namespace QuantityMeasurementRepository.Interface
         Task UpdateRefreshTokenAsync(int userId, string refreshToken, DateTime expiry);
         Task<bool> UsernameExistsAsync(string username);
         Task<bool> EmailExistsAsync(string email);
+        Task<UserEntity?> GetByEmailAsync(string email);
     }
 }

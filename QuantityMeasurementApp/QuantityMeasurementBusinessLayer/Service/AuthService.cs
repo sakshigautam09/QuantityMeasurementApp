@@ -108,6 +108,80 @@ namespace QuantityMeasurementBusinessLayer.Service
             return await IssueTokensAsync(user, "Token refreshed.");
         }
 
+
+        // ── Google OAuth login ───────────────────────────────────────────────
+
+        /// <summary>
+        /// Verify Google ID token via Google's tokeninfo endpoint.
+        /// Auto-registers the user on first sign-in, then issues our own JWT.
+        /// </summary>
+        public async Task<AuthResponseDto> GoogleLoginAsync(GoogleLoginRequestDto req)
+        {
+            _logger.LogInformation("[AuthService] Google login attempt");
+
+            var payload = await VerifyGoogleTokenAsync(req.IdToken);
+
+            string email = payload.GetValueOrDefault("email")
+                ?? throw new UnauthorizedAccessException("Google token missing email.");
+            string name  = payload.GetValueOrDefault("name")
+                ?? email.Split('@')[0];
+
+            if (!payload.TryGetValue("email_verified", out var verified) || verified != "true")
+                throw new UnauthorizedAccessException("Google email not verified.");
+
+            // Find existing user by email, or auto-register on first sign-in
+            var user = await _userRepo.GetByEmailAsync(email);
+            if (user is null)
+            {
+                _logger.LogInformation("[AuthService] Auto-registering Google user: {Email}", email);
+
+                string baseUsername = new string(name.Replace(" ", "").ToLowerInvariant()
+                    .Where(ch => char.IsLetterOrDigit(ch)).ToArray());
+                if (string.IsNullOrEmpty(baseUsername)) baseUsername = "user";
+
+                string username = baseUsername;
+                int suffix = 1;
+                while (await _userRepo.UsernameExistsAsync(username))
+                    username = $"{baseUsername}{suffix++}";
+
+                user = new UserEntity
+                {
+                    Username     = username,
+                    Email        = email,
+                    PasswordHash = UserRepository.HashPassword(Guid.NewGuid().ToString()),
+                    Role         = "User",
+                    CreatedAt    = DateTime.UtcNow,
+                    IsActive     = true
+                };
+                user = await _userRepo.CreateUserAsync(user);
+            }
+
+            if (!user.IsActive)
+                throw new UnauthorizedAccessException("Account is disabled.");
+
+            _logger.LogInformation("[AuthService] Google login success: UserId={Id}", user.Id);
+            return await IssueTokensAsync(user, "Google login successful.");
+        }
+
+        private static async Task<Dictionary<string, string>> VerifyGoogleTokenAsync(string idToken)
+        {
+            using var http = new System.Net.Http.HttpClient();
+            var resp = await http.GetAsync(
+                $"https://oauth2.googleapis.com/tokeninfo?id_token={Uri.EscapeDataString(idToken)}");
+
+            if (!resp.IsSuccessStatusCode)
+                throw new UnauthorizedAccessException("Invalid or expired Google token.");
+
+            var json = await resp.Content.ReadAsStringAsync();
+            var doc  = System.Text.Json.JsonDocument.Parse(json);
+
+            var result = new Dictionary<string, string>();
+            foreach (var prop in doc.RootElement.EnumerateObject())
+                if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.String)
+                    result[prop.Name] = prop.Value.GetString() ?? "";
+            return result;
+        }
+
         // ── Private helpers ───────────────────────────────────────────────
 
         private async Task<AuthResponseDto> IssueTokensAsync(UserEntity user, string message)

@@ -57,6 +57,9 @@ namespace QuantityMeasurementRepository.Repositories
         public async Task<bool> EmailExistsAsync(string email)
             => await _db.Users.AnyAsync(u => u.Email == email);
 
+        public async Task<UserEntity?> GetByEmailAsync(string email)
+            => await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+
         public static string HashPassword(string plainText)
             => BCrypt.Net.BCrypt.HashPassword(plainText, WorkFactor);
 
