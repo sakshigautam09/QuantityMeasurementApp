@@ -20,27 +20,24 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
-    Log.Information("=== Quantity Measurement API (UC17) starting ===");
+    Log.Information("=== Quantity Measurement API starting (PostgreSQL / Render) ===");
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // Single source of truth: WebAPI/Config (copied to output). Ensures EF uses the same SQL Server you configure for SSMS.
+    // Config loading: WebAPI/Config folder (same as before)
     var configDir = Path.Combine(builder.Environment.ContentRootPath, "Config");
     builder.Configuration
         .AddJsonFile(Path.Combine(configDir, "appsettings.json"), optional: false, reloadOnChange: true)
-        .AddJsonFile(Path.Combine(configDir, $"appsettings.{builder.Environment.EnvironmentName}.json"), optional: true, reloadOnChange: true);
+        .AddJsonFile(Path.Combine(configDir, $"appsettings.{builder.Environment.EnvironmentName}.json"), optional: true, reloadOnChange: true)
+        .AddEnvironmentVariables(); // ← Picks up DATABASE_URL, JWT_SECRET, etc. from Render
 
     builder.Host.UseSerilog((context, services, loggerConfiguration) =>
     {
-        var logsRoot = Path.Combine(context.HostingEnvironment.ContentRootPath, "Logs");
-        Directory.CreateDirectory(logsRoot);
-        var logFile = Path.Combine(logsRoot, "quantityapi-.txt");
-
         loggerConfiguration
             .ReadFrom.Configuration(context.Configuration)
             .ReadFrom.Services(services)
             .Enrich.FromLogContext()
-            .WriteTo.File(logFile, rollingInterval: Serilog.RollingInterval.Day, retainedFileCountLimit: 14);
+            .WriteTo.Console(); // Render streams logs from stdout — file logging not needed
     });
 
     builder.Services.AddControllers()
@@ -50,27 +47,30 @@ try
     builder.Services.AddBusinessServices();
 
     var config = builder.Configuration;
-    string secret = config["JwtSettings:Secret"]
-        ?? throw new InvalidOperationException("JwtSettings:Secret is not configured.");
-    string issuer = config["JwtSettings:Issuer"] ?? "QuantityMeasurementAPI";
-    string audience = config["JwtSettings:Audience"] ?? "QuantityMeasurementAPI";
+
+    // Support both env var override (Render) and appsettings
+    string secret = Environment.GetEnvironmentVariable("JWT_SECRET")
+        ?? config["JwtSettings:Secret"]
+        ?? throw new InvalidOperationException("JWT Secret is not configured. Set JWT_SECRET env var on Render.");
+    string issuer   = config["JwtSettings:Issuer"]   ?? "QuantityMeasurementAPI";
+    string audience = config["JwtSettings:Audience"] ?? "QuantityMeasurementAPIClients";
 
     builder.Services.AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
     }).AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
-            ValidateIssuer = true,
-            ValidIssuer = issuer,
+            ValidateIssuer   = true,
+            ValidIssuer      = issuer,
             ValidateAudience = true,
-            ValidAudience = audience,
+            ValidAudience    = audience,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(1)
+            ClockSkew        = TimeSpan.FromMinutes(1)
         };
         options.Events = new JwtBearerEvents
         {
@@ -84,21 +84,22 @@ try
     });
     builder.Services.AddAuthorization();
 
+    // Swagger — enabled in all environments (including Production on Render)
     builder.Services.AddSwaggerGen(options =>
     {
         options.SwaggerDoc("v1", new OpenApiInfo
         {
-            Title = "Quantity Measurement API",
-            Version = "v1",
-            Description = "UC17: Clean Architecture | JWT Auth | BCrypt | Redis | EF Core → SQL Server"
+            Title       = "Quantity Measurement API",
+            Version     = "v1",
+            Description = "Clean Architecture | JWT Auth | BCrypt | EF Core → PostgreSQL | Render"
         });
         var securityScheme = new OpenApiSecurityScheme
         {
-            Name = "Authorization",
+            Name        = "Authorization",
             Description = "Enter: Bearer {your_jwt_token}",
-            In = ParameterLocation.Header,
-            Type = SecuritySchemeType.ApiKey,
-            Scheme = "Bearer",
+            In          = ParameterLocation.Header,
+            Type        = SecuritySchemeType.ApiKey,
+            Scheme      = "Bearer",
             BearerFormat = "JWT"
         };
         options.AddSecurityDefinition("Bearer", securityScheme);
@@ -106,56 +107,64 @@ try
         {
             { new OpenApiSecurityScheme { Reference = new OpenApiReference { Id = "Bearer", Type = ReferenceType.SecurityScheme } }, new List<string>() }
         });
-        string xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-        string xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-        if (File.Exists(xmlPath)) options.IncludeXmlComments(xmlPath);
     });
     builder.Services.AddEndpointsApiExplorer();
 
+    // Health checks — PostgreSQL only (Redis is optional/fallback)
     if (!builder.Environment.IsEnvironment("Testing"))
     {
-        string sqlConn = config.GetConnectionString("QuantityMeasurementDb") ?? string.Empty;
-        string redisConn = config.GetConnectionString("Redis") ?? "localhost:6379";
+        var dbConn = Environment.GetEnvironmentVariable("DATABASE_URL")
+                     ?? config.GetConnectionString("QuantityMeasurementDb") ?? string.Empty;
         builder.Services.AddHealthChecks()
-            .AddSqlServer(sqlConn, name: "sqlserver", tags: new[] { "db" })
-            .AddRedis(redisConn, name: "redis", tags: new[] { "cache" });
+            .AddNpgSql(dbConn, name: "postgresql", tags: new[] { "db" });
     }
 
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddProblemDetails();
 
+    // CORS — allow local dev + deployed frontend (update with your real Render frontend URL)
+    var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? string.Empty;
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("AllowFrontend", policy =>
         {
-            policy.WithOrigins("http://127.0.0.1:5500", "http://localhost:5500")
-                .AllowAnyHeader()
-                .AllowAnyMethod();
+            var origins = new List<string>
+            {
+                "http://127.0.0.1:5500",
+                "http://localhost:5500",
+                "http://localhost:4200"
+            };
+            if (!string.IsNullOrWhiteSpace(frontendUrl))
+                origins.Add(frontendUrl);
+
+            policy.WithOrigins(origins.ToArray())
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
         });
     });
 
+    // Render sets PORT env var — bind to it
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
     var app = builder.Build();
 
+    // Auto-migrate on startup (works on Render)
     if (!app.Environment.IsEnvironment("Testing"))
     {
-        using (var scope = app.Services.CreateScope())
+        using var scope = app.Services.CreateScope();
+        var db     = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        try
         {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-            try
-            {
-                logger.LogInformation("Applying EF Core migrations (Config/ConnectionStrings:QuantityMeasurementDb)...");
-                await db.Database.MigrateAsync();
-                logger.LogInformation("Database ready. Tables: users, quantity_measurements");
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "MIGRATION FAILED: {Msg}. Fix WebAPI/Config/appsettings*.json then restart.", ex.Message);
-                if (app.Environment.IsDevelopment())
-                    throw new InvalidOperationException(
-                        "Database migration failed. Update ConnectionStrings:QuantityMeasurementDb to match your SSMS server (see Config/DATABASE_SETUP.txt), then restart or run: dotnet ef database update --project QuantityMeasurementRepository --startup-project QuantityMeasurementWebAPI",
-                        ex);
-            }
+            logger.LogInformation("Applying EF Core migrations (PostgreSQL)...");
+            await db.Database.MigrateAsync();
+            logger.LogInformation("Database ready. Tables: users, quantity_measurements");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "MIGRATION FAILED: {Msg}. Check DATABASE_URL env var on Render.", ex.Message);
+            if (app.Environment.IsDevelopment()) throw;
         }
     }
 
@@ -163,16 +172,14 @@ try
     app.UseSerilogRequestLogging(opts =>
         opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} → {StatusCode} in {Elapsed:0.0000} ms");
 
-    if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+    // Swagger enabled for all environments on Render
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
     {
-        app.UseSwagger();
-        app.UseSwaggerUI(c =>
-        {
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "Quantity Measurement API v1");
-            c.RoutePrefix = "swagger";
-            c.DisplayRequestDuration();
-        });
-    }
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Quantity Measurement API v1");
+        c.RoutePrefix = "swagger";
+        c.DisplayRequestDuration();
+    });
 
     app.UseCors("AllowFrontend");
     app.UseAuthentication();
@@ -191,10 +198,10 @@ try
                     status = report.Status.ToString(),
                     checks = report.Entries.Select(e => new
                     {
-                        name = e.Key,
-                        status = e.Value.Status.ToString(),
+                        name        = e.Key,
+                        status      = e.Value.Status.ToString(),
                         description = e.Value.Description ?? string.Empty,
-                        exception = e.Value.Exception?.Message
+                        exception   = e.Value.Exception?.Message
                     }),
                     duration = report.TotalDuration.TotalMilliseconds
                 };
@@ -204,12 +211,20 @@ try
         });
     }
 
-    Log.Information("=== Swagger  → http://localhost:5000/swagger ===");
-    Log.Information("=== Health   → http://localhost:5000/health   (SQL + Redis) ===");
-    Log.Information("=== File logs → QuantityMeasurementWebAPI/Logs/ (rolling daily) ===");
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        var urls = app.Urls.Any()
+            ? app.Urls
+            : new[] { $"http://localhost:{port}" };
+
+        foreach (var url in urls)
+        {
+            Log.Information("🚀 Swagger UI: {SwaggerUrl}", $"{url}/swagger");
+            Log.Information("❤️ Health Check: {HealthUrl}", $"{url}/health");
+        }
+    });
 
     await app.RunAsync();
-    Console.WriteLine("DB CONNECTION: " + config.GetConnectionString("QuantityMeasurementDb"));
 }
 catch (Exception ex)
 {
@@ -219,8 +234,6 @@ finally
 {
     Log.CloseAndFlush();
 }
-
-
 
 /// <summary>Exposed for WebApplicationFactory integration tests.</summary>
 public partial class Program { }

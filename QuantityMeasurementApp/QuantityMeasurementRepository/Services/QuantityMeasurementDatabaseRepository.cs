@@ -27,7 +27,7 @@ namespace QuantityMeasurementRepository
                     "Connection string 'QuantityMeasurementDb' not found in appsettings.json");
 
             _options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseSqlServer(connectionString)
+                .UseNpgsql(connectionString)
                 .Options;
 
             // Ensure the database and tables exist

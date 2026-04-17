@@ -4,9 +4,9 @@ using QuantityMeasurementModel.Entities;
 namespace QuantityMeasurementRepository.Context
 {
     /// <summary>
-    /// EF Core DbContext targeting SQL Server (SSMS).
+    /// EF Core DbContext targeting PostgreSQL (Npgsql) for Render deployment.
     /// Auto-migrates on startup via db.Database.MigrateAsync() in Program.cs (WebAPI).
-    /// Connection string: QuantityMeasurementWebAPI/Config/appsettings.json
+    /// Connection string: DATABASE_URL env var (Render) or appsettings.json fallback.
     /// Manual migration: dotnet ef database update --project QuantityMeasurementRepository --startup-project QuantityMeasurementWebAPI
     /// </summary>
     public class ApplicationDbContext : DbContext

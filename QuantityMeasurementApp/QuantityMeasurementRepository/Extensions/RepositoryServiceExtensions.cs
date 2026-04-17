@@ -13,6 +13,7 @@ namespace QuantityMeasurementRepository.Extensions
 {
     /// <summary>
     /// Dependency injection extensions for Repository layer (DbContext, Redis, Repositories).
+    /// UPDATED: SQL Server → PostgreSQL (Npgsql) for Render deployment.
     /// </summary>
     public static class RepositoryServiceExtensions
     {
@@ -20,22 +21,32 @@ namespace QuantityMeasurementRepository.Extensions
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            var conn = configuration.GetConnectionString("QuantityMeasurementDb");
+            // Render provides DATABASE_URL env var automatically for PostgreSQL services.
+            // We check that first, then fall back to appsettings ConnectionString.
+            var conn = Environment.GetEnvironmentVariable("DATABASE_URL")
+                       ?? configuration.GetConnectionString("QuantityMeasurementDb");
+
             if (string.IsNullOrWhiteSpace(conn))
                 throw new InvalidOperationException(
-                    "ConnectionStrings:QuantityMeasurementDb is missing. Set it in QuantityMeasurementWebAPI/Config/appsettings.json (or User Secrets).");
+                    "No database connection found. Set DATABASE_URL env var (Render) " +
+                    "or ConnectionStrings:QuantityMeasurementDb in appsettings.json.");
 
+            // Render's DATABASE_URL uses the postgres:// URI format.
+            // Npgsql accepts both URI and traditional connection string formats.
             services.AddDbContext<ApplicationDbContext>(opts =>
-                opts.UseSqlServer(
+                opts.UseNpgsql(
                     conn,
-                    sql =>
+                    npgsql =>
                     {
-                        sql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(4), null);
-                        sql.CommandTimeout(60);
+                        npgsql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(4), null);
+                        npgsql.CommandTimeout(60);
                     }));
 
-            string redisConn = configuration.GetConnectionString("Redis") ?? "localhost:6379";
-            if (TryConnectRedis(redisConn))
+            string redisConn = Environment.GetEnvironmentVariable("REDIS_URL")
+                               ?? configuration.GetConnectionString("Redis")
+                               ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(redisConn) && TryConnectRedis(redisConn))
             {
                 services.AddStackExchangeRedisCache(opts =>
                 {

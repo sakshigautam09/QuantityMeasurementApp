@@ -6,6 +6,8 @@ namespace QuantityMeasurementRepository.Context
 {
     /// <summary>
     /// EF Core design-time factory for migrations (dotnet ef migrations add).
+    /// UPDATED: Uses Npgsql (PostgreSQL) instead of SQL Server.
+    /// Set DATABASE_URL env var locally or configure appsettings.Development.json.
     /// </summary>
     public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
     {
@@ -39,8 +41,12 @@ namespace QuantityMeasurementRepository.Context
                 .AddJsonFile("appsettings.Development.json", optional: true)
                 .Build();
 
+            // Support both DATABASE_URL env var and appsettings connection string
+            var conn = Environment.GetEnvironmentVariable("DATABASE_URL")
+                       ?? config.GetConnectionString("QuantityMeasurementDb");
+
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseSqlServer(config.GetConnectionString("QuantityMeasurementDb"))
+                .UseNpgsql(conn)
                 .Options;
 
             return new ApplicationDbContext(options);
