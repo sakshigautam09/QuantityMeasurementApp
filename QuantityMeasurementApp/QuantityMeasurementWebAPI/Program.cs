@@ -124,25 +124,11 @@ try
 
     // CORS — allow local dev + deployed frontend (update with your real Render frontend URL)
     var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? string.Empty;
-    // FIXED — allows Render frontend + localhost for dev
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("AllowFrontend", policy =>
         {
-            var allowedOrigins = new List<string>
-            {
-                "http://127.0.0.1:5500",
-                "http://localhost:5500",
-                "http://localhost:4200",
-                "https://quantitymeasurementapp-frontend-qga4.onrender.com"
-            };
-
-            // Read your deployed frontend URL from env var set on Render
-            var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
-            if (!string.IsNullOrWhiteSpace(frontendUrl))
-                allowedOrigins.Add(frontendUrl);
-
-            policy.WithOrigins(allowedOrigins.ToArray())
+            policy.AllowAnyOrigin()
                 .AllowAnyHeader()
                 .AllowAnyMethod();
         });
