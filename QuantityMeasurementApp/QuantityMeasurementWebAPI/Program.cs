@@ -133,7 +133,8 @@ try
             {
                 "http://127.0.0.1:5500",
                 "http://localhost:5500",
-                "http://localhost:4200"
+                "http://localhost:4200",
+                "https://quantitymeasurementapp-frontend-qga4.onrender.com"
             };
 
             // Read your deployed frontend URL from env var set on Render
