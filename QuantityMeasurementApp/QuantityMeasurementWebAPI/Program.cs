@@ -124,22 +124,26 @@ try
 
     // CORS — allow local dev + deployed frontend (update with your real Render frontend URL)
     var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? string.Empty;
+    // FIXED — allows Render frontend + localhost for dev
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("AllowFrontend", policy =>
         {
-            var origins = new List<string>
+            var allowedOrigins = new List<string>
             {
                 "http://127.0.0.1:5500",
                 "http://localhost:5500",
                 "http://localhost:4200"
             };
-            if (!string.IsNullOrWhiteSpace(frontendUrl))
-                origins.Add(frontendUrl);
 
-            policy.WithOrigins(origins.ToArray())
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
+            // Read your deployed frontend URL from env var set on Render
+            var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL");
+            if (!string.IsNullOrWhiteSpace(frontendUrl))
+                allowedOrigins.Add(frontendUrl);
+
+            policy.WithOrigins(allowedOrigins.ToArray())
+                .AllowAnyHeader()
+                .AllowAnyMethod();
         });
     });
 
