@@ -159,8 +159,8 @@ try
         }
     }
 
-    app.UseExceptionHandler();
     app.UseCors("AllowFrontend");
+    app.UseExceptionHandler();
     app.UseSerilogRequestLogging(opts =>
         opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} → {StatusCode} in {Elapsed:0.0000} ms");
 
