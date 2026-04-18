@@ -31,8 +31,21 @@ namespace QuantityMeasurementRepository.Extensions
                     "No database connection found. Set DATABASE_URL env var (Render) " +
                     "or ConnectionStrings:QuantityMeasurementDb in appsettings.json.");
 
-            // Render's DATABASE_URL uses the postgres:// URI format.
-            // Npgsql accepts both URI and traditional connection string formats.
+            // Render provides DATABASE_URL in postgresql:// or postgres:// URI format.
+            // Npgsql requires Host=...;Database=... format — convert it.
+            if (conn.StartsWith("postgresql://") || conn.StartsWith("postgres://"))
+            {
+                var uri = new Uri(conn);
+                var userInfo = uri.UserInfo.Split(':');
+                conn = $"Host={uri.Host};" +
+                       $"Port={( uri.Port > 0 ? uri.Port : 5432 )};" +
+                       $"Database={uri.AbsolutePath.TrimStart('/')};" +
+                       $"Username={userInfo[0]};" +
+                       $"Password={userInfo[1]};" +
+                       $"SSL Mode=Require;" +
+                       $"Trust Server Certificate=true;";
+            }
+
             services.AddDbContext<ApplicationDbContext>(opts =>
                 opts.UseNpgsql(
                     conn,
