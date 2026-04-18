@@ -159,7 +159,10 @@ try
         }
     }
 
+    // CORS must be the very first middleware so that preflight OPTIONS requests
+    // and error responses all carry the Access-Control-Allow-Origin header.
     app.UseCors("AllowFrontend");
+
     app.UseExceptionHandler();
     app.UseSerilogRequestLogging(opts =>
         opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} → {StatusCode} in {Elapsed:0.0000} ms");
@@ -199,7 +202,7 @@ try
                 await context.Response.WriteAsync(
                     JsonSerializer.Serialize(result, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
             }
-        });
+        }).RequireCors("AllowFrontend"); // Minimal API endpoints need CORS applied explicitly
     }
 
     app.Lifetime.ApplicationStarted.Register(() =>
